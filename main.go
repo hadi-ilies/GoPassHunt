@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+
+	"./hunter"
 )
 
 const (
@@ -24,8 +26,25 @@ func usage(exitValue int) {
 }
 
 func main() {
-	fmt.Println("Hello world")
+	if len(os.Args) < 2 {
+		usage(exitFailure)
+	}
 	if os.Args[1] == "--help" || os.Args[1] == "-h" {
 		usage(exitSuccess)
+	}
+	//the program turn off verbose mode by default
+	isVerbose := false
+	folderPath := os.Args[1]
+	if len(os.Args) > 2 {
+		if os.Args[2] == "--verbose" || os.Args[2] == "-v" {
+			fmt.Println("Verbose option is used")
+			isVerbose = true
+		}
+	}
+	hunter := hunter.NewHunter(folderPath, isVerbose)
+	err := hunter.Start()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(exitFailure)
 	}
 }
