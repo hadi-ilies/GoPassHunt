@@ -8,10 +8,12 @@
 
 ```sh
 USAGE
-        go run main.go [options]
+        go run main.go <folderPath> [options]
 OPTIONS
         -h, --help
                 Display the program usage
+        -v, --verbose
+                Display additional logs
 ```
 
 ## Authors
