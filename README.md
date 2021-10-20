@@ -1,4 +1,4 @@
-<h1 align="center">GoPassHunt 👋</h1>
+<h1 align="center">Welcome to GoPassHunt 👋</h1>
 <p>
 </p>
 
