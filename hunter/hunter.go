@@ -22,6 +22,23 @@ func (h *Hunter) processFolder() error {
 	//filepath.Walk accepts a string pointing to the root folder thanks to this we get all files inside this folder
 	err := filepath.Walk(h.folderpath, func(path string, info os.FileInfo, err error) error {
 		files = append(files, path)
+		//check extension file
+		switch ext := filepath.Ext(path); ext {
+		case ".txt":
+			fmt.Println("handle = ", ext)
+		case ".xlsx":
+			fmt.Println("handle = ", ext)
+		case ".gdoc":
+			fmt.Println("handle = ", ext)
+		case ".gsheet":
+			fmt.Println("handle = ", ext)
+		case ".msg":
+			fmt.Println("handle = ", ext)
+		case ".docx":
+			fmt.Println("handle = ", ext)
+		default:
+			fmt.Println("no need to read this file")
+		}
 		return nil
 	})
 	if err != nil {
