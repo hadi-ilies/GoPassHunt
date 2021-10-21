@@ -8,7 +8,7 @@
 
 ```sh
 USAGE
-        go run main.go <folderPath> [options]
+        GO111MODULE=off go run main.go <folderPath> [options]
 OPTIONS
         -h, --help
                 Display the program usage

@@ -2,7 +2,10 @@ package hunter
 
 import (
 	"fmt"
+	"index/suffixarray"
+	"io/ioutil"
 	"os"
+	"strings"
 
 	//The path/filepath stdlib package provides the handy Walk function. It automatically scans subdirectories
 	"path/filepath"
@@ -11,40 +14,95 @@ import (
 type Hunter struct {
 	folderpath string
 	verbose    bool
+	files      []string
+	words      []string //words to hunt
 }
 
-func NewHunter(folderPath string, verbose bool) *Hunter {
-	return &Hunter{folderpath: folderPath, verbose: verbose}
+func NewHunter(folderPath string, verbose bool, words []string) *Hunter {
+	return &Hunter{folderpath: folderPath, verbose: verbose, words: words}
+}
+
+func (h *Hunter) readTxtFile(path string) error {
+	fmt.Println("starting to read:", path)
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	suffix := suffixarray.New(b) // accepts []byte
+	for _, word := range h.words {
+		indexList := suffix.Lookup([]byte(word), -1)
+		if len(indexList) == 0 {
+			if h.verbose {
+				fmt.Println("the word ", "\"", word, "\" ", "has not been detected inside this file")
+			}
+			//if word not detected pass to the other one directly
+			continue
+		}
+		s := string(b)
+		// loop through the word indices
+		for _, idx := range indexList {
+			nbLines := strings.Count(s[:idx+len(word)], "\n")
+			fmt.Println(path, fmt.Sprint(nbLines)+":"+fmt.Sprint(idx), "word:", "\""+string(s[idx:idx+len(word)])+"\"", "detected")
+		}
+	}
+	return nil
+}
+
+func (h *Hunter) readXslxFile(path string) error {
+	return nil
+}
+
+func (h *Hunter) readGdocFile(path string) error {
+	return nil
+}
+
+func (h *Hunter) readGsheetFile(path string) error {
+	return nil
+}
+
+func (h *Hunter) readMsgFile(path string) error {
+	return nil
+}
+
+func (h *Hunter) readDocxFile(path string) error {
+	return nil
+}
+
+func (h *Hunter) browsePC(path string, info os.FileInfo, err error) error {
+	h.files = append(h.files, path)
+	//check extension file
+	ext := filepath.Ext(path)
+	if h.verbose {
+		fmt.Println("Handle", ext)
+	}
+	switch ext {
+	case ".txt":
+		err = h.readTxtFile(path)
+	case ".xlsx":
+		err = h.readXslxFile(path)
+	case ".gdoc":
+		err = h.readGdocFile(path)
+	case ".gsheet":
+		err = h.readGsheetFile(path)
+	case ".msg":
+		err = h.readMsgFile(path)
+	case ".docx":
+		err = h.readDocxFile(path)
+	default:
+		if h.verbose {
+			fmt.Println("no need to read:", path)
+		}
+	}
+	return err
 }
 
 func (h *Hunter) processFolder() error {
-	var files []string
-	//filepath.Walk accepts a string pointing to the root folder thanks to this we get all files inside this folder
-	err := filepath.Walk(h.folderpath, func(path string, info os.FileInfo, err error) error {
-		files = append(files, path)
-		//check extension file
-		switch ext := filepath.Ext(path); ext {
-		case ".txt":
-			fmt.Println("handle = ", ext)
-		case ".xlsx":
-			fmt.Println("handle = ", ext)
-		case ".gdoc":
-			fmt.Println("handle = ", ext)
-		case ".gsheet":
-			fmt.Println("handle = ", ext)
-		case ".msg":
-			fmt.Println("handle = ", ext)
-		case ".docx":
-			fmt.Println("handle = ", ext)
-		default:
-			fmt.Println("no need to read this file")
-		}
-		return nil
-	})
+	//filepath.Walk accepts a string pointing to the root folder thanks to this we get all files inside the targeted folder
+	err := filepath.Walk(h.folderpath, h.browsePC)
 	if err != nil {
 		panic(err)
 	}
-	for _, file := range files {
+	for _, file := range h.files {
 		fmt.Println(file)
 	}
 	return nil
@@ -64,10 +122,14 @@ func (h *Hunter) Start() error {
 	case err != nil:
 		return err
 	case fi.IsDir():
-		fmt.Println("Is a Folder")
+		if h.verbose {
+			fmt.Println("Is a Folder")
+		}
 		err = h.processFolder()
 	default:
-		fmt.Println("Is a File")
+		if h.verbose {
+			fmt.Println("Is a File")
+		}
 		err = h.processFile()
 	}
 	return err

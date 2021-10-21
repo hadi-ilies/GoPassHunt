@@ -41,7 +41,7 @@ func main() {
 			isVerbose = true
 		}
 	}
-	hunter := hunter.NewHunter(folderPath, isVerbose)
+	hunter := hunter.NewHunter(folderPath, isVerbose, []string{"pass", "mot de passe", "password", "@extia."})
 	err := hunter.Start()
 	if err != nil {
 		fmt.Println(err)
