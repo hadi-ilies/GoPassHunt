@@ -10,6 +10,7 @@ import (
 	//The path/filepath stdlib package provides the handy Walk function. It automatically scans subdirectories
 	"path/filepath"
 
+	"github.com/nguyenthenguyen/docx"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -67,7 +68,7 @@ func (h *Hunter) readXslxFile(path string) error {
 			for _, word := range h.words {
 				if strings.Contains(colCell, word) {
 					//row:column
-					fmt.Println(path, "row="+fmt.Sprint(i)+":"+"col=", fmt.Sprint(j), "word:", "\""+word+"\"", "detected")
+					fmt.Println(path, "row="+fmt.Sprint(i)+":"+"col="+fmt.Sprint(j), "word:", "\""+word+"\"", "detected")
 				}
 				// fmt.Print(colCell, "\t")
 			}
@@ -90,6 +91,32 @@ func (h *Hunter) readMsgFile(path string) error {
 }
 
 func (h *Hunter) readDocxFile(path string) error {
+	// Read from docx file
+	r, err := docx.ReadDocxFile(path)
+	if err != nil {
+		return err
+	}
+	docx1 := r.Editable()
+	b := []byte(docx1.GetContent())
+	suffix := suffixarray.New(b) // accepts []byte
+
+	for _, word := range h.words {
+		indexList := suffix.Lookup([]byte(word), -1)
+		if len(indexList) == 0 {
+			if h.verbose {
+				fmt.Println("the word ", "\"", word, "\" ", "has not been detected inside this file")
+			}
+			//if word not detected pass to the other one directly
+			continue
+		}
+		s := string(b)
+		// loop through the word indices
+		for _, idx := range indexList {
+			//TODO(hadi): find a way to count line
+			fmt.Println(path, fmt.Sprint(0)+":"+fmt.Sprint(idx), "word:", "\""+string(s[idx:idx+len(word)])+"\"", "detected")
+		}
+	}
+
 	return nil
 }
 
@@ -127,9 +154,10 @@ func (h *Hunter) processFolder() error {
 	if err != nil {
 		panic(err)
 	}
-	for _, file := range h.files {
-		fmt.Println(file)
-	}
+	//diplay all filespath
+	// for _, file := range h.files {
+	// 	fmt.Println(file)
+	// }
 	return nil
 }
 
