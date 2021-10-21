@@ -113,7 +113,8 @@ func (h *Hunter) readDocxFile(path string) error {
 		// loop through the word indices
 		for _, idx := range indexList {
 			//TODO(hadi): find a way to count line
-			fmt.Println(path, fmt.Sprint(0)+":"+fmt.Sprint(idx), "word:", "\""+string(s[idx:idx+len(word)])+"\"", "detected")
+			nbLines := strings.Count(s[:idx+len(word)], "</w:t>")
+			fmt.Println(path, fmt.Sprint(nbLines)+":"+fmt.Sprint(idx), "word:", "\""+string(s[idx:idx+len(word)])+"\"", "detected")
 		}
 	}
 
