@@ -4,11 +4,17 @@
 
 >  Search drives for documents containing passwords
 
+## required
+
+- We are using go modules therefore you need to install all dependencies before running the program
+``` sh
+        go mod tidy
+```
 ## Usage
 
 ```sh
 USAGE
-        GO111MODULE=off go run main.go <folderPath> [options]
+        GO111MODULE=on go run main.go <folderPath> [options]
 OPTIONS
         -h, --help
                 Display the program usage

@@ -9,6 +9,8 @@ import (
 
 	//The path/filepath stdlib package provides the handy Walk function. It automatically scans subdirectories
 	"path/filepath"
+
+	"github.com/xuri/excelize/v2"
 )
 
 type Hunter struct {
@@ -49,6 +51,29 @@ func (h *Hunter) readTxtFile(path string) error {
 }
 
 func (h *Hunter) readXslxFile(path string) error {
+	f, err := excelize.OpenFile(path)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	// Get all the rows in the Sheet1.
+	rows, err := f.GetRows("Sheet1")
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	for i, row := range rows {
+		for j, colCell := range row {
+			for _, word := range h.words {
+				if strings.Contains(colCell, word) {
+					//row:column
+					fmt.Println(path, "row="+fmt.Sprint(i)+":"+"col=", fmt.Sprint(j), "word:", "\""+word+"\"", "detected")
+				}
+				// fmt.Print(colCell, "\t")
+			}
+		}
+		// fmt.Println()
+	}
 	return nil
 }
 
