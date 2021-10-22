@@ -191,6 +191,8 @@ func (h *Hunter) processFile(path string) error {
 	case ".xlsx":
 		err = h.readXslxFile(path)
 	case ".gdoc":
+		//connect to gdrive
+		ConnectToGdrive()
 		err = h.readGdocFile(path)
 	case ".gsheet":
 		err = h.readGsheetFile(path)
