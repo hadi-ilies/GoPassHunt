@@ -1,6 +1,7 @@
 package hunter
 
 import (
+	"errors"
 	"fmt"
 	"index/suffixarray"
 	"io/ioutil"
@@ -14,11 +15,15 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
+// type readFile func(path string) error
 type Hunter struct {
 	folderpath string
 	verbose    bool
 	files      []string
-	words      []string //words to hunt
+	//words to hunt
+	words []string
+	//map of compatiblefiles (files that we gonna read) [extensionfile] -> func
+	// compatibleFiles map[string]readFile
 }
 
 func NewHunter(folderPath string, verbose bool, words []string) *Hunter {
@@ -28,8 +33,16 @@ func NewHunter(folderPath string, verbose bool, words []string) *Hunter {
 func (h *Hunter) readTxtFile(path string) error {
 	fmt.Println("starting to read:", path)
 	b, err := ioutil.ReadFile(path)
+	//CHECK RIGHTS access
 	if err != nil {
-		return err
+		if errors.Is(err, os.ErrPermission) {
+			if h.verbose {
+				fmt.Println(path, "access denied")
+			}
+			return nil
+		} else {
+			return err
+		}
 	}
 	suffix := suffixarray.New(b) // accepts []byte
 	for _, word := range h.words {
@@ -57,23 +70,26 @@ func (h *Hunter) readXslxFile(path string) error {
 		fmt.Println(err)
 		return err
 	}
-	// Get all the rows in the Sheet1.
-	rows, err := f.GetRows("Sheet1")
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-	for i, row := range rows {
-		for j, colCell := range row {
-			for _, word := range h.words {
-				if strings.Contains(colCell, word) {
-					//row:column
-					fmt.Println(path, "row="+fmt.Sprint(i)+":"+"col="+fmt.Sprint(j), "word:", "\""+word+"\"", "detected")
-				}
-				// fmt.Print(colCell, "\t")
-			}
+	// get all sheets of excel
+	for _, sheet := range f.WorkBook.Sheets.Sheet {
+		rows, err := f.GetRows(sheet.Name)
+		// Get all the rows in the Sheet1.
+		if err != nil {
+			fmt.Println(err)
+			return err
 		}
-		// fmt.Println()
+		for i, row := range rows {
+			for j, colCell := range row {
+				for _, word := range h.words {
+					if strings.Contains(colCell, word) {
+						//row:column
+						fmt.Println(path, "sheetName="+sheet.Name+":"+"row="+fmt.Sprint(i)+":"+"col="+fmt.Sprint(j), "word:", "\""+word+"\"", "detected")
+					}
+					// fmt.Print(colCell, "\t")
+				}
+			}
+			// fmt.Println()
+		}
 	}
 	return nil
 }
@@ -162,8 +178,32 @@ func (h *Hunter) processFolder() error {
 	return nil
 }
 
-func (h *Hunter) processFile() error {
-	return nil
+func (h *Hunter) processFile(path string) error {
+	var err error
+	//check extension file
+	ext := filepath.Ext(path)
+	if h.verbose {
+		fmt.Println("Handle", ext)
+	}
+	switch ext {
+	case ".txt":
+		err = h.readTxtFile(path)
+	case ".xlsx":
+		err = h.readXslxFile(path)
+	case ".gdoc":
+		err = h.readGdocFile(path)
+	case ".gsheet":
+		err = h.readGsheetFile(path)
+	case ".msg":
+		err = h.readMsgFile(path)
+	case ".docx":
+		err = h.readDocxFile(path)
+	default:
+		if h.verbose {
+			fmt.Println("no need to read:", path)
+		}
+	}
+	return err
 }
 
 func (h *Hunter) Start() error {
@@ -184,7 +224,7 @@ func (h *Hunter) Start() error {
 		if h.verbose {
 			fmt.Println("Is a File")
 		}
-		err = h.processFile()
+		err = h.processFile(h.folderpath)
 	}
 	return err
 }
