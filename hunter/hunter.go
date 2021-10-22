@@ -13,6 +13,7 @@ import (
 
 	"github.com/nguyenthenguyen/docx"
 	"github.com/xuri/excelize/v2"
+	"google.golang.org/api/drive/v3"
 )
 
 // type readFile func(path string) error
@@ -24,6 +25,7 @@ type Hunter struct {
 	words []string
 	//map of compatiblefiles (files that we gonna read) [extensionfile] -> func
 	// compatibleFiles map[string]readFile
+	service *drive.Service
 }
 
 func NewHunter(folderPath string, verbose bool, words []string) *Hunter {
@@ -95,6 +97,20 @@ func (h *Hunter) readXslxFile(path string) error {
 }
 
 func (h *Hunter) readGdocFile(path string) error {
+	r, err := h.service.Files.List().Fields("nextPageToken, files(id, name)").Do()
+	if err != nil {
+		return fmt.Errorf("Unable to retrieve files: %v", err)
+	}
+	fmt.Println("Files:")
+	if len(r.Files) == 0 {
+		if h.verbose {
+			fmt.Println("No files found.")
+		}
+	} else {
+		for _, i := range r.Files {
+			fmt.Printf("%s (%s)\n", i.Name, i.Id)
+		}
+	}
 	return nil
 }
 
@@ -133,7 +149,6 @@ func (h *Hunter) readDocxFile(path string) error {
 			fmt.Println(path, fmt.Sprint(nbLines)+":"+fmt.Sprint(idx), "word:", "\""+string(s[idx:idx+len(word)])+"\"", "detected")
 		}
 	}
-
 	return nil
 }
 
@@ -192,7 +207,12 @@ func (h *Hunter) processFile(path string) error {
 		err = h.readXslxFile(path)
 	case ".gdoc":
 		//connect to gdrive
-		ConnectToGdrive()
+		if h.service == nil {
+			if h.service, err = ConnectToGdrive(); err != nil {
+				fmt.Println("Error: while connecting to google drive")
+				return err
+			}
+		}
 		err = h.readGdocFile(path)
 	case ".gsheet":
 		err = h.readGsheetFile(path)

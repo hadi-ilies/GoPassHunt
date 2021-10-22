@@ -70,7 +70,7 @@ func getClient(config *oauth2.Config) *http.Client {
 	return config.Client(context.Background(), tok)
 }
 
-func ConnectToGdrive() {
+func ConnectToGdrive() (*drive.Service, error) {
 	ctx := context.Background()
 	b, err := ioutil.ReadFile("credentials/credentials.json")
 	if err != nil {
@@ -89,18 +89,19 @@ func ConnectToGdrive() {
 		log.Fatalf("Unable to retrieve Drive client: %v", err)
 	}
 
-	r, err := srv.Files.List().PageSize(10).
-		Fields("nextPageToken, files(id, name)").Do()
-	if err != nil {
-		log.Fatalf("Unable to retrieve files: %v", err)
-	}
-	fmt.Println("Files:")
-	if len(r.Files) == 0 {
-		fmt.Println("No files found.")
-	} else {
-		for _, i := range r.Files {
-			fmt.Printf("%s (%s)\n", i.Name, i.Id)
-		}
-	}
-
+	//todo(hadi): to be deleted
+	// r, err := srv.Files.List().PageSize(10).
+	// 	Fields("nextPageToken, files(id, name)").Do()
+	// if err != nil {
+	// 	log.Fatalf("Unable to retrieve files: %v", err)
+	// }
+	// fmt.Println("Files:")
+	// if len(r.Files) == 0 {
+	// 	fmt.Println("No files found.")
+	// } else {
+	// 	for _, i := range r.Files {
+	// 		fmt.Printf("%s (%s)\n", i.Name, i.Id)
+	// 	}
+	// }
+	return srv, err
 }
