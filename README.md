@@ -20,6 +20,8 @@ OPTIONS
                 Display the program usage
         -v, --verbose
                 Display additional logs
+        -g, --gdrive
+                Search in google drive
 ```
 
 ## Authors

@@ -20,7 +20,9 @@ import (
 type Hunter struct {
 	folderpath string
 	verbose    bool
+	Gdrive     bool
 	files      []string
+	driveData  []Gdrive
 	//words to hunt
 	words []string
 	//map of compatiblefiles (files that we gonna read) [extensionfile] -> func
@@ -28,8 +30,8 @@ type Hunter struct {
 	service *drive.Service
 }
 
-func NewHunter(folderPath string, verbose bool, words []string) *Hunter {
-	return &Hunter{folderpath: folderPath, verbose: verbose, words: words}
+func NewHunter(folderPath string, verbose bool, gDrive bool, words []string) *Hunter {
+	return &Hunter{folderpath: folderPath, verbose: verbose, Gdrive: gDrive, words: words}
 }
 
 func (h *Hunter) readTxtFile(path string) error {
@@ -96,25 +98,32 @@ func (h *Hunter) readXslxFile(path string) error {
 	return nil
 }
 
-func (h *Hunter) readGdocFile(path string) error {
-	r, err := h.service.Files.List().Fields("nextPageToken, files(id, name)").Do()
-	if err != nil {
-		return fmt.Errorf("Unable to retrieve files: %v", err)
-	}
-	fmt.Println("Files:")
-	if len(r.Files) == 0 {
-		if h.verbose {
-			fmt.Println("No files found.")
-		}
-	} else {
-		for _, i := range r.Files {
-			fmt.Printf("%s (%s)\n", i.Name, i.Id)
-		}
+func (h *Hunter) displayGdriveFiles() error {
+	for _, data := range h.driveData {
+		fmt.Printf("FileName=%s | FileType=(%s) | WordDetected=\"%s\"\n", data.Name, data.Type, data.WordDetected)
 	}
 	return nil
 }
 
-func (h *Hunter) readGsheetFile(path string) error {
+func (h *Hunter) searchInGdrive(fileType string) error {
+	if h.verbose {
+		fmt.Println("Looking for", "\""+fileType+"\"", "files:")
+	}
+	for _, word := range h.words {
+		r, err := h.service.Files.List().Q("mimeType = '" + fileType + "' and fullText contains '" + word + "'").Fields("nextPageToken, files(id, name)").Do()
+		if err != nil {
+			return fmt.Errorf("Unable to retrieve files: %v", err)
+		}
+		if len(r.Files) == 0 {
+			if h.verbose {
+				fmt.Println("No files found.")
+			}
+		} else {
+			for _, i := range r.Files {
+				h.driveData = append(h.driveData, Gdrive{Link: i.IconLink, Type: fileType, Name: i.Name, Id: i.Id, WordDetected: word})
+			}
+		}
+	}
 	return nil
 }
 
@@ -164,10 +173,6 @@ func (h *Hunter) browsePC(path string, info os.FileInfo, err error) error {
 		err = h.readTxtFile(path)
 	case ".xlsx":
 		err = h.readXslxFile(path)
-	case ".gdoc":
-		err = h.readGdocFile(path)
-	case ".gsheet":
-		err = h.readGsheetFile(path)
 	case ".msg":
 		err = h.readMsgFile(path)
 	case ".docx":
@@ -193,6 +198,24 @@ func (h *Hunter) processFolder() error {
 	return nil
 }
 
+//connect to gdrive + search all files that contains words inserted inside Hunter struct
+//it takes the type of file we want to look at
+func (h *Hunter) lookAtGdrive(filesType string) error {
+	var err error
+	//connect to gdrive
+	if h.service == nil {
+		if h.service, err = ConnectToGdrive(); err != nil {
+			fmt.Println("Error: while connecting to google drive")
+			return err
+		}
+	}
+	err = h.searchInGdrive(filesType)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (h *Hunter) processFile(path string) error {
 	var err error
 	//check extension file
@@ -205,17 +228,6 @@ func (h *Hunter) processFile(path string) error {
 		err = h.readTxtFile(path)
 	case ".xlsx":
 		err = h.readXslxFile(path)
-	case ".gdoc":
-		//connect to gdrive
-		if h.service == nil {
-			if h.service, err = ConnectToGdrive(); err != nil {
-				fmt.Println("Error: while connecting to google drive")
-				return err
-			}
-		}
-		err = h.readGdocFile(path)
-	case ".gsheet":
-		err = h.readGsheetFile(path)
 	case ".msg":
 		err = h.readMsgFile(path)
 	case ".docx":
@@ -228,7 +240,47 @@ func (h *Hunter) processFile(path string) error {
 	return err
 }
 
+func (h *Hunter) searchInGdriveAllFiles() error {
+	if err := h.searchInGdrive(GdriveDocxType); err != nil {
+		return err
+	}
+	if err := h.searchInGdrive(GdriveGdocType); err != nil {
+		return err
+	}
+	if err := h.searchInGdrive(GdriveGsheetType); err != nil {
+		return err
+	}
+	if err := h.searchInGdrive(GdriveXlsxType); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (h *Hunter) readAllGdrive() error {
+	if err := h.displayGdriveFiles(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (h *Hunter) Start() error {
+	if h.Gdrive {
+		var err error
+		//connect once to google drive
+		if h.service, err = ConnectToGdrive(); err != nil {
+			fmt.Println("Error: while connecting to google drive")
+			return err
+		}
+		//look for the wanted types
+		if err := h.searchInGdriveAllFiles(); err != nil {
+			return err
+		}
+		if err := h.readAllGdrive(); err != nil {
+			return err
+		}
+	}
+
+	//look for file/folder on current computer
 	file, err := os.Open(h.folderpath)
 	if err != nil {
 		return err

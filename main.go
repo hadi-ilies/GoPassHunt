@@ -22,7 +22,18 @@ func usage(exitValue int) {
 	fmt.Println("\t\tDisplay the program usage")
 	fmt.Println("\t-v, --verbose")
 	fmt.Println("\t\tDisplay additonal logs")
+	fmt.Println("\t-g, --gdrive")
+	fmt.Println("\t\tsearch in google drive")
 	os.Exit(exitValue)
+}
+
+func contains(s []string, searchterm string) bool {
+	for _, str := range s {
+		if str == searchterm {
+			return true
+		}
+	}
+	return false
 }
 
 func main() {
@@ -33,15 +44,17 @@ func main() {
 		usage(exitSuccess)
 	}
 	//the program turn off verbose mode by default
-	isVerbose := false
-	folderPath := os.Args[1]
-	if len(os.Args) > 2 {
-		if os.Args[2] == "--verbose" || os.Args[2] == "-v" {
-			fmt.Println("Verbose option is used")
-			isVerbose = true
-		}
+	isVerbose, isGdrive := false, false
+	if contains(os.Args, "-v") || contains(os.Args, "--verbose") {
+		fmt.Println("Verbose Enabled")
+		isVerbose = true
 	}
-	hunter := hunter.NewHunter(folderPath, isVerbose, []string{"pass", "mot de passe", "password", "@extia."})
+	if contains(os.Args, "-g") || contains(os.Args, "--gdrive") {
+		fmt.Println("Gdrive Enabled")
+		isGdrive = true
+	}
+	folderPath := os.Args[1]
+	hunter := hunter.NewHunter(folderPath, isVerbose, isGdrive, []string{"pass", "mot de passe", "password", "@extia."})
 	err := hunter.Start()
 	if err != nil {
 		fmt.Println(err)

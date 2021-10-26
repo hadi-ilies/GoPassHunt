@@ -15,6 +15,14 @@ import (
 	"google.golang.org/api/option"
 )
 
+type Gdrive struct {
+	Link         string
+	Type         string
+	Name         string
+	Id           string
+	WordDetected string
+}
+
 // Request a token from the web, then returns the retrieved token.
 func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
@@ -78,7 +86,7 @@ func ConnectToGdrive() (*drive.Service, error) {
 	}
 
 	// If modifying these scopes, delete your previously saved token.json.
-	config, err := google.ConfigFromJSON(b, drive.DriveMetadataReadonlyScope)
+	config, err := google.ConfigFromJSON(b, drive.DriveMetadataReadonlyScope, drive.DriveReadonlyScope)
 	if err != nil {
 		log.Fatalf("Unable to parse client secret file to config: %v", err)
 	}
@@ -88,20 +96,5 @@ func ConnectToGdrive() (*drive.Service, error) {
 	if err != nil {
 		log.Fatalf("Unable to retrieve Drive client: %v", err)
 	}
-
-	//todo(hadi): to be deleted
-	// r, err := srv.Files.List().PageSize(10).
-	// 	Fields("nextPageToken, files(id, name)").Do()
-	// if err != nil {
-	// 	log.Fatalf("Unable to retrieve files: %v", err)
-	// }
-	// fmt.Println("Files:")
-	// if len(r.Files) == 0 {
-	// 	fmt.Println("No files found.")
-	// } else {
-	// 	for _, i := range r.Files {
-	// 		fmt.Printf("%s (%s)\n", i.Name, i.Id)
-	// 	}
-	// }
 	return srv, err
 }
