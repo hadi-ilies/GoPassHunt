@@ -171,7 +171,7 @@ func (h *Hunter) browsePC(path string, info os.FileInfo, err error) error {
 		fmt.Println("Handle", ext)
 	}
 	err = nil
-	if ext == ".txt" || ext == ".xlsx" || ext == ".docx" || ext == "msg" {
+	if h.verbose && (ext == ".txt" || ext == ".xlsx" || ext == ".docx" || ext == "msg") {
 		fmt.Println("starting to read:", path)
 	}
 	switch ext {
@@ -265,6 +265,8 @@ func (h *Hunter) readAllGdrive() error {
 func (h *Hunter) Start() error {
 	if h.Gdrive {
 		var err error
+
+		fmt.Println("Google Drive: ")
 		//connect once to google drive
 		if h.service, err = ConnectToGdrive(); err != nil {
 			fmt.Println("Error: while connecting to google drive")
