@@ -1,7 +1,6 @@
 package hunter
 
 import (
-	"errors"
 	"fmt"
 	"index/suffixarray"
 	"io/ioutil"
@@ -11,6 +10,7 @@ import (
 	//The path/filepath stdlib package provides the handy Walk function. It automatically scans subdirectories
 	"path/filepath"
 
+	"github.com/iafan/cwalk"
 	"github.com/nguyenthenguyen/docx"
 	"github.com/xuri/excelize/v2"
 	"google.golang.org/api/drive/v3"
@@ -35,18 +35,13 @@ func NewHunter(folderPath string, verbose bool, gDrive bool, words []string) *Hu
 }
 
 func (h *Hunter) readTxtFile(path string) error {
-	fmt.Println("starting to read:", path)
 	b, err := ioutil.ReadFile(path)
-	//CHECK RIGHTS access
 	if err != nil {
-		if errors.Is(err, os.ErrPermission) {
-			if h.verbose {
-				fmt.Println(path, "access denied")
-			}
-			return nil
-		} else {
-			return err
+		// if errors.Is(err, os.ErrPermission) {
+		if h.verbose {
+			fmt.Println("Error:", path, err)
 		}
+		return nil
 	}
 	suffix := suffixarray.New(b) // accepts []byte
 	for _, word := range h.words {
@@ -71,8 +66,10 @@ func (h *Hunter) readTxtFile(path string) error {
 func (h *Hunter) readXslxFile(path string) error {
 	f, err := excelize.OpenFile(path)
 	if err != nil {
-		fmt.Println(err)
-		return err
+		if h.verbose {
+			fmt.Println("Error:", path, err)
+		}
+		return nil
 	}
 	// get all sheets of excel
 	for _, sheet := range f.WorkBook.Sheets.Sheet {
@@ -135,7 +132,10 @@ func (h *Hunter) readDocxFile(path string) error {
 	// Read from docx file
 	r, err := docx.ReadDocxFile(path)
 	if err != nil {
-		return err
+		if h.verbose {
+			fmt.Println("docx Error:", err)
+		}
+		return nil
 	}
 	docx1 := r.Editable()
 	b := []byte(docx1.GetContent())
@@ -162,21 +162,27 @@ func (h *Hunter) readDocxFile(path string) error {
 }
 
 func (h *Hunter) browsePC(path string, info os.FileInfo, err error) error {
-	h.files = append(h.files, path)
+	path = h.folderpath + "/" + path
+	//TODO(Hadi): should we save paths ?
+	// h.files = append(h.files, path)
 	//check extension file
 	ext := filepath.Ext(path)
 	if h.verbose {
 		fmt.Println("Handle", ext)
 	}
+	err = nil
+	if ext == ".txt" || ext == ".xlsx" || ext == ".docx" || ext == "msg" {
+		fmt.Println("starting to read:", path)
+	}
 	switch ext {
 	case ".txt":
-		err = h.readTxtFile(path)
+		go h.readTxtFile(path)
 	case ".xlsx":
-		err = h.readXslxFile(path)
+		go h.readXslxFile(path)
 	case ".msg":
-		err = h.readMsgFile(path)
+		go h.readMsgFile(path)
 	case ".docx":
-		err = h.readDocxFile(path)
+		go h.readDocxFile(path)
 	default:
 		if h.verbose {
 			fmt.Println("no need to read:", path)
@@ -186,16 +192,9 @@ func (h *Hunter) browsePC(path string, info os.FileInfo, err error) error {
 }
 
 func (h *Hunter) processFolder() error {
-	//filepath.Walk accepts a string pointing to the root folder thanks to this we get all files inside the targeted folder
-	err := filepath.Walk(h.folderpath, h.browsePC)
-	if err != nil {
-		panic(err)
-	}
-	//diplay all filespath
-	// for _, file := range h.files {
-	// 	fmt.Println(file)
-	// }
-	return nil
+	//we use walk with goroutines, Check: https://github.com/iafan/cwalk for more info
+	err := cwalk.Walk(h.folderpath, h.browsePC)
+	return err
 }
 
 //connect to gdrive + search all files that contains words inserted inside Hunter struct

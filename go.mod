@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+	github.com/iafan/cwalk v0.0.0-20210125030640-586a8832a711
 	github.com/nguyenthenguyen/docx v0.0.0-20210714134305-d2271ea4db67
 	github.com/xuri/excelize/v2 v2.4.1
 	golang.org/x/net v0.0.0-20211020060615-d418f374d309 // indirect
