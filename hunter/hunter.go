@@ -163,8 +163,6 @@ func (h *Hunter) readDocxFile(path string) error {
 
 func (h *Hunter) browsePC(path string, info os.FileInfo, err error) error {
 	path = h.folderpath + "/" + path
-	//TODO(Hadi): should we save paths ?
-	// h.files = append(h.files, path)
 	//check extension file
 	ext := filepath.Ext(path)
 	if h.verbose {
@@ -191,9 +189,57 @@ func (h *Hunter) browsePC(path string, info os.FileInfo, err error) error {
 	return err
 }
 
+func (h *Hunter) test(path string) error {
+	path = h.folderpath + "/" + path
+	//check extension file
+	ext := filepath.Ext(path)
+	if h.verbose {
+		fmt.Println("Handle", ext)
+	}
+	var err error
+	if h.verbose && (ext == ".txt" || ext == ".xlsx" || ext == ".docx" || ext == "msg") {
+		fmt.Println("starting to read:", path)
+	}
+	switch ext {
+	case ".txt":
+		go h.readTxtFile(path)
+	case ".xlsx":
+		go h.readXslxFile(path)
+	case ".msg":
+		go h.readMsgFile(path)
+	case ".docx":
+		go h.readDocxFile(path)
+	default:
+		if h.verbose {
+			fmt.Println("no need to read:", path)
+		}
+	}
+	return err
+}
+
+func (h *Hunter) countFiles(path string, info os.FileInfo, err error) error {
+	//TODO(Hadi): should we save paths ?
+	path = h.folderpath + "/" + path
+	h.files = append(h.files, path)
+	return nil
+}
+
 func (h *Hunter) processFolder() error {
+	//count files
+	err := cwalk.Walk(h.folderpath, h.countFiles)
+
 	//we use walk with goroutines, Check: https://github.com/iafan/cwalk for more info
-	err := cwalk.Walk(h.folderpath, h.browsePC)
+	// err = cwalk.Walk(h.folderpath, h.browsePC)
+	var bar Bar
+	totalFiles := int64(len(h.files))
+	bar.NewOption(0, totalFiles)
+	for i := int64(0); i <= totalFiles; i++ {
+		// time.Sleep(100 * time.Millisecond)
+		h.test(h.files[i])
+		bar.Play(int64(i))
+	}
+	bar.Finish()
+
 	return err
 }
 
