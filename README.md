@@ -5,11 +5,15 @@
 >  Search drives for documents containing passwords
 
 ## required
+- Install Golang on your computer
+
+- if you want to hunt inside your Gdrive please, create a folder called `credentials` and put your oauth client ID inside it and rename the file `credentials.json`
 
 - We are using go modules therefore you need to install all dependencies before running the program
 ``` sh
         go mod tidy
 ```
+- check that the go modules are enabled
 ## Usage
 
 ```sh
