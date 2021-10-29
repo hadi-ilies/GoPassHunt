@@ -176,13 +176,13 @@ func (h *Hunter) browsePC(path string, info os.FileInfo, err error) error {
 	}
 	switch ext {
 	case ".txt":
-		go h.readTxtFile(path)
+		err = h.readTxtFile(path)
 	case ".xlsx":
-		go h.readXslxFile(path)
+		err = h.readXslxFile(path)
 	case ".msg":
-		go h.readMsgFile(path)
+		err = h.readMsgFile(path)
 	case ".docx":
-		go h.readDocxFile(path)
+		err = h.readDocxFile(path)
 	default:
 		if h.verbose {
 			fmt.Println("no need to read:", path)
